@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="12" fill="#0A0A0A"/>
+  <!-- Top stylized P letter with sporty angle in brand orange -->
+  <path d="M12 14 L38 14 C47 14 53 19 53 27 C53 35 47 40 38 40 L26 40 L26 50 L12 50 Z" fill="#FEA707" stroke="#C27000" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Inner cutout -->
+  <path d="M26 23 L36 23 C40 23 43 25 43 27 C43 29 40 31 36 31 L26 31 Z" fill="#0A0A0A"/>
+  <!-- Red accent stripes matching Prime logo -->
+  <rect x="12" y="53" width="40" height="3" rx="1.5" fill="#E23A0F"/>
+  <rect x="12" y="58" width="40" height="3" rx="1.5" fill="#E23A0F"/>
+</svg>
