@@ -333,7 +333,7 @@ function initLeadForm() {
 
     if (!validateForm()) return;
 
-    // Set Loading State
+    // Set brief tactile loading state
     submitBtn.classList.add('is-loading');
     submitBtn.disabled = true;
 
@@ -347,46 +347,50 @@ function initLeadForm() {
       timestamp: new Date().toISOString()
     };
 
-    try {
-      // If Google Sheet Web App URL is provided, send data
-      if (GOOGLE_SHEET_WEB_APP_URL && GOOGLE_SHEET_WEB_APP_URL.trim() !== '') {
-        await fetch(GOOGLE_SHEET_WEB_APP_URL.trim(), {
+    // Send to Google Sheets asynchronously in background with keepalive (zero blocking on UI)
+    if (GOOGLE_SHEET_WEB_APP_URL && GOOGLE_SHEET_WEB_APP_URL.trim() !== '') {
+      try {
+        fetch(GOOGLE_SHEET_WEB_APP_URL.trim(), {
           method: 'POST',
-          mode: 'no-cors', // Essential for Google Apps Script redirects & CORS
+          mode: 'no-cors',
+          keepalive: true,
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
           },
           body: JSON.stringify(payload)
+        }).catch((err) => {
+          console.warn('Background sync status:', err);
         });
-      } else {
-        // Fallback simulation for local testing when URL is not yet added
-        await new Promise(resolve => setTimeout(resolve, 800));
+      } catch (err) {
+        console.warn('Background sync error:', err);
       }
-
-      // Update Success Box Details
-      if (successUserName) successUserName.textContent = payload.name;
-
-      if (successWaLink) {
-        let waText = 'Hi Prime Academy, I visited your website and want to know more about your courses. Please share details and book me a free demo!';
-        if (payload.name || payload.course) {
-          waText += `\n\n👤 *Name:* ${payload.name}\n🎯 *Course:* ${payload.course}`;
-        }
-        successWaLink.href = `https://wa.me/919033222499?text=${encodeURIComponent(waText)}`;
-      }
-
-      // Transition to Success State
-      const formTitleGroup = document.getElementById('form-title-group');
-      if (formTitleGroup) formTitleGroup.style.display = 'none';
-      form.style.display = 'none';
-      if (successBox) successBox.style.display = 'block';
-
-    } catch (err) {
-      console.error('Form submission error:', err);
-      alert('There was an issue processing your request. Please click "Book Instantly on WhatsApp" to connect directly.');
-    } finally {
-      submitBtn.classList.remove('is-loading');
-      submitBtn.disabled = false;
     }
+
+    // Snappy micro-delay (300ms) so user feels button click registering
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Update Success Box Details
+    if (successUserName) successUserName.textContent = payload.name;
+
+    if (successWaLink) {
+      let waText = 'Hi Prime Academy, I visited your website and want to know more about your courses. Please share details and book me a free demo!';
+      if (payload.name || payload.course) {
+        waText += `\n\n👤 *Name:* ${payload.name}\n🎯 *Course:* ${payload.course}`;
+      }
+      successWaLink.href = `https://wa.me/919033222499?text=${encodeURIComponent(waText)}`;
+    }
+
+    // Transition to Success State immediately & smoothly
+    const formTitleGroup = document.getElementById('form-title-group');
+    if (formTitleGroup) formTitleGroup.style.display = 'none';
+    form.style.display = 'none';
+    if (successBox) {
+      successBox.style.display = 'block';
+      successBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    submitBtn.classList.remove('is-loading');
+    submitBtn.disabled = false;
   });
 
   // Reset Form
