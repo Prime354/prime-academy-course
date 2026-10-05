@@ -897,42 +897,15 @@ function initMotionVideoSound() {
     }
   };
 
-  // Attempt unmuted playback with full volume immediately
-  video.muted = false;
+  // Video MUST ALWAYS start MUTED until user explicitly clicks to listen
+  video.muted = true;
   video.volume = 1.0;
+  updateSoundUI(true);
 
-  const playPromise = video.play();
-  if (playPromise !== undefined) {
-    playPromise
-      .then(() => {
-        // Browser allowed unmuted autoplay!
-        updateSoundUI(false);
-      })
-      .catch(() => {
-        // Browser autoplay policy blocked unmuted audio on cold load.
-        // Fallback: start muted so video visually loops immediately,
-        // and instantly unmute with full sound on the first user interaction.
-        video.muted = true;
-        video.play().catch(() => {});
-        updateSoundUI(true);
+  // Autoplay silently in background
+  video.play().catch(() => {});
 
-        const enableSoundOnInteraction = () => {
-          video.muted = false;
-          video.volume = 1.0;
-          video.play().catch(() => {});
-          updateSoundUI(false);
-          window.removeEventListener('click', enableSoundOnInteraction);
-          window.removeEventListener('touchstart', enableSoundOnInteraction);
-          window.removeEventListener('keydown', enableSoundOnInteraction);
-        };
-
-        window.addEventListener('click', enableSoundOnInteraction, { once: true, passive: true });
-        window.addEventListener('touchstart', enableSoundOnInteraction, { once: true, passive: true });
-        window.addEventListener('keydown', enableSoundOnInteraction, { once: true, passive: true });
-      });
-  }
-
-  // Toggle button click listener
+  // Toggle sound ONLY on explicit button click
   if (soundBtn) {
     soundBtn.addEventListener('click', (e) => {
       e.stopPropagation();
