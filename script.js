@@ -315,15 +315,15 @@ function initLeadForm() {
 
   // WhatsApp Direct Booking Fallback
   whatsappBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim() || 'Prospective Student';
-    const phone = phoneInput.value.trim() || 'Not specified';
-    const city = cityInput.value.trim() || 'Ahmedabad';
-    const course = courseSelect.value || 'Creative Courses';
+    const name = nameInput.value.trim();
+    const course = courseSelect.value;
 
-    const message = encodeURIComponent(
-      `Hello Prime Academy! 🎨\n\nI want to book a Free Demo Class.\n\n👤 *Name:* ${name}\n📞 *Phone:* ${phone}\n📍 *City:* ${city}\n🎯 *Course:* ${course}\n\nPlease confirm my demo seat!`
-    );
+    let messageText = 'Hi Prime Academy, I visited your website and want to know more about your courses. Please share details and book me a free demo!';
+    if (name || course) {
+      messageText += `\n\n👤 *Name:* ${name || 'Prospective Student'}\n🎯 *Course:* ${course || 'Creative Courses'}`;
+    }
 
+    const message = encodeURIComponent(messageText);
     window.open(`https://wa.me/919033222499?text=${message}`, '_blank', 'noopener,noreferrer');
   });
 
@@ -367,10 +367,11 @@ function initLeadForm() {
       if (successUserName) successUserName.textContent = payload.name;
 
       if (successWaLink) {
-        const waMsg = encodeURIComponent(
-          `Hi Prime Academy, I just submitted my Demo Class booking for *${payload.course}*! My name is *${payload.name}*.`
-        );
-        successWaLink.href = `https://wa.me/919033222499?text=${waMsg}`;
+        let waText = 'Hi Prime Academy, I visited your website and want to know more about your courses. Please share details and book me a free demo!';
+        if (payload.name || payload.course) {
+          waText += `\n\n👤 *Name:* ${payload.name}\n🎯 *Course:* ${payload.course}`;
+        }
+        successWaLink.href = `https://wa.me/919033222499?text=${encodeURIComponent(waText)}`;
       }
 
       // Transition to Success State
