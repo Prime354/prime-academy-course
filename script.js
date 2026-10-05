@@ -878,10 +878,10 @@ function initStudentWorkVideos() {
 }
 
 /* --------------------------------------------------------------------------
-   8.6 MOTION GRAPHICS & AI VIDEO AUDIO & SOUND CONTROLS
+   8.6 MOTION GRAPHICS & AI VIDEO AUDIO & SOUND CONTROLS (AUTOPLAY & CONTINUOUS LOOP)
    -------------------------------------------------------------------------- */
 function initMotionVideoSound() {
-  const video = document.querySelector('.motion-section-video');
+  const video = document.getElementById('motion-graphics-video') || document.querySelector('.motion-section-video');
   const soundBtn = document.getElementById('motion-sound-btn');
   if (!video) return;
 
@@ -898,35 +898,123 @@ function initMotionVideoSound() {
     }
   };
 
-  // Video MUST ALWAYS start MUTED until user explicitly clicks to listen
+  // 1. Rigorously enforce loop and muted properties on DOM element
+  video.loop = true;
+  video.setAttribute('loop', '');
+  video.defaultMuted = true;
   video.muted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
   video.volume = 1.0;
   updateSoundUI(true);
 
-  // Autoplay silently in background
-  video.play().catch(() => {});
+  // Safe play helper that prevents unhandled promise rejections
+  let isRetrying = false;
+  const safePlay = () => {
+    if (!video) return;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        isRetrying = false;
+      }).catch(() => {
+        // If autoplay was rejected (e.g. strict browser policy), ensure muted and retry
+        if (!video.muted) {
+          video.muted = true;
+          updateSoundUI(true);
+        }
+        if (!isRetrying) {
+          isRetrying = true;
+          setTimeout(() => {
+            if (video && video.paused) {
+              video.play().catch(() => {});
+            }
+          }, 300);
+        }
+      });
+    }
+  };
 
-  // Toggle sound ONLY on explicit button click
-  if (soundBtn) {
-    soundBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      video.muted = !video.muted;
-      if (!video.muted) {
-        video.volume = 1.0;
-        video.play().catch(() => {});
-      }
-      updateSoundUI(video.muted);
-    });
+  // 2. Immediate playback attempt
+  safePlay();
+
+  // 3. Play as soon as metadata or buffered data becomes available
+  video.addEventListener('loadstart', safePlay, { once: true });
+  video.addEventListener('loadedmetadata', safePlay, { once: true });
+  video.addEventListener('loadeddata', safePlay, { once: true });
+  video.addEventListener('canplay', safePlay, { once: true });
+
+  // 4. STRICT CONTINUOUS LOOP ENFORCEMENT:
+  // Native 'loop' attribute can stall in some browsers; this guarantees seamless continuous loop
+  video.addEventListener('ended', () => {
+    video.currentTime = 0;
+    safePlay();
+  });
+
+  // Timeupdate safeguard: if within 0.12s of the end, seamlessly loop back to 0
+  video.addEventListener('timeupdate', () => {
+    if (video.duration && video.currentTime >= video.duration - 0.12) {
+      video.currentTime = 0;
+      safePlay();
+    }
+  });
+
+  // Auto-resume if accidentally paused while page is active
+  video.addEventListener('pause', () => {
+    if (!document.hidden) {
+      setTimeout(() => {
+        if (video && video.paused) safePlay();
+      }, 60);
+    }
+  });
+
+  // 5. Intersection Observer: Guarantee playback when user scrolls to Motion Graphics section
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && video.paused) {
+          safePlay();
+        }
+      });
+    }, { threshold: [0, 0.2, 0.5] });
+
+    observer.observe(video);
+    const motionSection = document.getElementById('motion-graphics');
+    if (motionSection) observer.observe(motionSection);
   }
 
-  // Direct click on the video also toggles sound
-  video.addEventListener('click', () => {
+  // 6. User gesture unlock fallback:
+  // If the browser blocked cold-load autoplay, start playback on the user's first scroll/tap
+  const unlockPlay = () => {
+    if (video && video.paused) {
+      safePlay();
+    }
+  };
+  ['touchstart', 'touchend', 'scroll', 'pointerdown', 'mousedown'].forEach(evt => {
+    window.addEventListener(evt, unlockPlay, { passive: true, once: true });
+  });
+
+  // 7. Resume playback when returning to this browser tab
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && video && video.paused) {
+      safePlay();
+    }
+  });
+
+  // 8. Sound toggle controls (Button & direct video click)
+  const toggleSound = (e) => {
+    if (e) e.stopPropagation();
     video.muted = !video.muted;
     if (!video.muted) {
       video.volume = 1.0;
-      video.play().catch(() => {});
     }
+    safePlay();
     updateSoundUI(video.muted);
-  });
+  };
+
+  if (soundBtn) {
+    soundBtn.addEventListener('click', toggleSound);
+  }
+  video.addEventListener('click', toggleSound);
 }
 
