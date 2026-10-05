@@ -518,7 +518,8 @@ h6 {
 .hero-content {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  justify-content: center;
+  gap: 1.5rem;
 }
 
 .hero-badge-tag {
