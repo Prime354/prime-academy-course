@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLeadForm();
   initThreeJSScenes();
   initStudentWorkVideos();
-  initMotionVideoSound();
+  initCourseLoopVideos();
   initCurrentYear();
   handleUrlScroll();
 });
@@ -416,10 +416,10 @@ function initThreeJSScenes() {
   // Hero background elements removed as requested
   // initHeroScene(isReducedMotion);
 
-  // Initialize Individual Course 3D Artifacts
-  initCourseCanvas('canvas-graphic-design', 'graphic', isReducedMotion);
-  initCourseCanvas('canvas-video-editing', 'video', isReducedMotion);
-  initCourseCanvas('canvas-motion-graphics', 'motion', isReducedMotion);
+  // Individual Course 3D Artifacts (Replaced with high-fidelity media showcases)
+  // initCourseCanvas('canvas-graphic-design', 'graphic', isReducedMotion);
+  // initCourseCanvas('canvas-video-editing', 'video', isReducedMotion);
+  // initCourseCanvas('canvas-motion-graphics', 'motion', isReducedMotion);
 }
 
 /**
@@ -858,163 +858,202 @@ function initStudentWorkVideos() {
           otherPlayer.pause();
         }
       });
-      // Also mute motion background video to prevent sound collision
-      const motionVideo = document.querySelector('.motion-section-video');
-      const soundBtn = document.getElementById('motion-sound-btn');
-      if (motionVideo && !motionVideo.muted) {
-        motionVideo.muted = true;
-        if (soundBtn) {
-          soundBtn.classList.add('is-muted');
-          soundBtn.setAttribute('aria-label', 'Unmute Sound');
-          soundBtn.title = 'Click to Unmute Sound';
-          const iconUnmuted = soundBtn.querySelector('.icon-unmuted');
-          const iconMuted = soundBtn.querySelector('.icon-muted');
-          if (iconUnmuted) iconUnmuted.style.display = 'none';
-          if (iconMuted) iconMuted.style.display = 'block';
-        }
-      }
+      // Also mute course background videos to prevent sound collision
+      document.querySelectorAll('.motion-section-video, .video-editing-section-video').forEach(v => {
+        if (!v.muted) v.muted = true;
+      });
+      document.querySelectorAll('.video-sound-toggle').forEach(btn => {
+        btn.classList.add('is-muted');
+        btn.setAttribute('aria-label', 'Unmute Sound');
+        btn.title = 'Click to Unmute Sound';
+        const iconUnmuted = btn.querySelector('.icon-unmuted');
+        const iconMuted = btn.querySelector('.icon-muted');
+        if (iconUnmuted) iconUnmuted.style.display = 'none';
+        if (iconMuted) iconMuted.style.display = 'block';
+      });
     });
   });
 }
 
 /* --------------------------------------------------------------------------
-   8.6 MOTION GRAPHICS & AI VIDEO AUDIO & SOUND CONTROLS (AUTOPLAY & CONTINUOUS LOOP)
+   8.6 COURSE SECTION VIDEOS AUDIO & SOUND CONTROLS (AUTOPLAY & CONTINUOUS LOOP)
    -------------------------------------------------------------------------- */
-function initMotionVideoSound() {
-  const video = document.getElementById('motion-graphics-video') || document.querySelector('.motion-section-video');
-  const soundBtn = document.getElementById('motion-sound-btn');
-  if (!video) return;
-
-  const updateSoundUI = (isMuted) => {
-    if (!soundBtn) return;
-    soundBtn.classList.toggle('is-muted', isMuted);
-    soundBtn.setAttribute('aria-label', isMuted ? 'Unmute Sound' : 'Mute Sound');
-    soundBtn.title = isMuted ? 'Click to Unmute Sound' : 'Click to Mute Sound';
-    const iconUnmuted = soundBtn.querySelector('.icon-unmuted');
-    const iconMuted = soundBtn.querySelector('.icon-muted');
-    if (iconUnmuted && iconMuted) {
-      iconUnmuted.style.display = isMuted ? 'none' : 'block';
-      iconMuted.style.display = isMuted ? 'block' : 'none';
+function initCourseLoopVideos() {
+  const videoConfigs = [
+    {
+      videoId: 'video-editing-video',
+      btnId: 'video-editing-sound-btn',
+      sectionId: 'video-editing'
+    },
+    {
+      videoId: 'motion-graphics-video',
+      btnId: 'motion-sound-btn',
+      sectionId: 'motion-graphics'
     }
-  };
+  ];
 
-  // 1. Rigorously enforce loop and muted properties on DOM element
-  video.loop = true;
-  video.setAttribute('loop', '');
-  video.defaultMuted = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.setAttribute('playsinline', '');
-  video.setAttribute('webkit-playsinline', '');
-  video.volume = 1.0;
-  updateSoundUI(true);
+  const trackedVideos = [];
 
-  // Safe play helper that prevents unhandled promise rejections
-  let isRetrying = false;
-  const safePlay = () => {
+  videoConfigs.forEach(cfg => {
+    const video = document.getElementById(cfg.videoId);
+    const soundBtn = document.getElementById(cfg.btnId);
     if (!video) return;
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        isRetrying = false;
-      }).catch(() => {
-        // If autoplay was rejected (e.g. strict browser policy), ensure muted and retry
-        if (!video.muted) {
-          video.muted = true;
-          updateSoundUI(true);
-        }
-        if (!isRetrying) {
-          isRetrying = true;
-          setTimeout(() => {
-            if (video && video.paused) {
-              video.play().catch(() => {});
-            }
-          }, 300);
-        }
-      });
-    }
-  };
 
-  // 2. Immediate playback attempt
-  safePlay();
+    trackedVideos.push({ video, soundBtn });
 
-  // 3. Play as soon as metadata or buffered data becomes available
-  video.addEventListener('loadstart', safePlay, { once: true });
-  video.addEventListener('loadedmetadata', safePlay, { once: true });
-  video.addEventListener('loadeddata', safePlay, { once: true });
-  video.addEventListener('canplay', safePlay, { once: true });
+    const updateSoundUI = (isMuted) => {
+      if (!soundBtn) return;
+      soundBtn.classList.toggle('is-muted', isMuted);
+      soundBtn.setAttribute('aria-label', isMuted ? 'Unmute Sound' : 'Mute Sound');
+      soundBtn.title = isMuted ? 'Click to Unmute Sound' : 'Click to Mute Sound';
+      const iconUnmuted = soundBtn.querySelector('.icon-unmuted');
+      const iconMuted = soundBtn.querySelector('.icon-muted');
+      if (iconUnmuted && iconMuted) {
+        iconUnmuted.style.display = isMuted ? 'none' : 'block';
+        iconMuted.style.display = isMuted ? 'block' : 'none';
+      }
+    };
 
-  // 4. STRICT CONTINUOUS LOOP ENFORCEMENT:
-  // Native 'loop' attribute can stall in some browsers; this guarantees seamless continuous loop
-  video.addEventListener('ended', () => {
-    video.currentTime = 0;
+    // 1. Rigorously enforce loop and muted properties on DOM element
+    video.loop = true;
+    video.setAttribute('loop', '');
+    video.defaultMuted = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.volume = 1.0;
+    updateSoundUI(true);
+
+    // Safe play helper that prevents unhandled promise rejections
+    let isRetrying = false;
+    const safePlay = () => {
+      if (!video) return;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          isRetrying = false;
+        }).catch(() => {
+          // If autoplay was rejected (e.g. strict browser policy), ensure muted and retry
+          if (!video.muted) {
+            video.muted = true;
+            updateSoundUI(true);
+          }
+          if (!isRetrying) {
+            isRetrying = true;
+            setTimeout(() => {
+              if (video && video.paused) {
+                video.play().catch(() => {});
+              }
+            }, 300);
+          }
+        });
+      }
+    };
+
+    // 2. Immediate playback attempt
     safePlay();
-  });
 
-  // Timeupdate safeguard: if within 0.12s of the end, seamlessly loop back to 0
-  video.addEventListener('timeupdate', () => {
-    if (video.duration && video.currentTime >= video.duration - 0.12) {
+    // 3. Play as soon as metadata or buffered data becomes available
+    ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay'].forEach(evt => {
+      video.addEventListener(evt, safePlay, { once: true });
+    });
+
+    // 4. STRICT CONTINUOUS LOOP ENFORCEMENT:
+    // Native 'loop' attribute can stall in some browsers; this guarantees seamless continuous loop
+    video.addEventListener('ended', () => {
       video.currentTime = 0;
       safePlay();
+    });
+
+    // Timeupdate safeguard: if within 0.12s of the end, seamlessly loop back to 0
+    video.addEventListener('timeupdate', () => {
+      if (video.duration && video.currentTime >= video.duration - 0.12) {
+        video.currentTime = 0;
+        safePlay();
+      }
+    });
+
+    // Auto-resume if accidentally paused while page is active
+    video.addEventListener('pause', () => {
+      if (!document.hidden) {
+        setTimeout(() => {
+          if (video && video.paused) safePlay();
+        }, 60);
+      }
+    });
+
+    // 5. Intersection Observer: Guarantee playback when user scrolls into section
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && video.paused) {
+            safePlay();
+          }
+        });
+      }, { threshold: [0, 0.2, 0.5] });
+
+      observer.observe(video);
+      const section = document.getElementById(cfg.sectionId);
+      if (section) observer.observe(section);
     }
-  });
 
-  // Auto-resume if accidentally paused while page is active
-  video.addEventListener('pause', () => {
-    if (!document.hidden) {
-      setTimeout(() => {
-        if (video && video.paused) safePlay();
-      }, 60);
-    }
-  });
+    // 6. User gesture unlock fallback:
+    // If browser blocked cold-load autoplay, start playback on first user gesture
+    const unlockPlay = () => {
+      if (video && video.paused) {
+        safePlay();
+      }
+    };
+    ['touchstart', 'touchend', 'scroll', 'pointerdown', 'mousedown'].forEach(evt => {
+      window.addEventListener(evt, unlockPlay, { passive: true, once: true });
+    });
 
-  // 5. Intersection Observer: Guarantee playback when user scrolls to Motion Graphics section
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && video.paused) {
-          safePlay();
-        }
-      });
-    }, { threshold: [0, 0.2, 0.5] });
+    // 7. Resume playback when returning to this browser tab
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && video && video.paused) {
+        safePlay();
+      }
+    });
 
-    observer.observe(video);
-    const motionSection = document.getElementById('motion-graphics');
-    if (motionSection) observer.observe(motionSection);
-  }
-
-  // 6. User gesture unlock fallback:
-  // If the browser blocked cold-load autoplay, start playback on the user's first scroll/tap
-  const unlockPlay = () => {
-    if (video && video.paused) {
+    // 8. Sound toggle controls (Button & direct video click with mutual exclusion)
+    const toggleSound = (e) => {
+      if (e) e.stopPropagation();
+      const willUnmute = video.muted;
+      if (willUnmute) {
+        // Mute all other course looping videos to prevent overlapping sound
+        trackedVideos.forEach(item => {
+          if (item.video !== video && !item.video.muted) {
+            item.video.muted = true;
+            if (item.soundBtn) {
+              item.soundBtn.classList.add('is-muted');
+              item.soundBtn.setAttribute('aria-label', 'Unmute Sound');
+              item.soundBtn.title = 'Click to Unmute Sound';
+              const u = item.soundBtn.querySelector('.icon-unmuted');
+              const m = item.soundBtn.querySelector('.icon-muted');
+              if (u) u.style.display = 'none';
+              if (m) m.style.display = 'block';
+            }
+          }
+        });
+        video.muted = false;
+        video.volume = 1.0;
+      } else {
+        video.muted = true;
+      }
       safePlay();
+      updateSoundUI(video.muted);
+    };
+
+    if (soundBtn) {
+      soundBtn.addEventListener('click', toggleSound);
     }
-  };
-  ['touchstart', 'touchend', 'scroll', 'pointerdown', 'mousedown'].forEach(evt => {
-    window.addEventListener(evt, unlockPlay, { passive: true, once: true });
+    video.addEventListener('click', toggleSound);
   });
+}
 
-  // 7. Resume playback when returning to this browser tab
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && video && video.paused) {
-      safePlay();
-    }
-  });
-
-  // 8. Sound toggle controls (Button & direct video click)
-  const toggleSound = (e) => {
-    if (e) e.stopPropagation();
-    video.muted = !video.muted;
-    if (!video.muted) {
-      video.volume = 1.0;
-    }
-    safePlay();
-    updateSoundUI(video.muted);
-  };
-
-  if (soundBtn) {
-    soundBtn.addEventListener('click', toggleSound);
-  }
-  video.addEventListener('click', toggleSound);
+// Backward compatibility alias
+function initMotionVideoSound() {
+  initCourseLoopVideos();
 }
 
